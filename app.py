@@ -1,25 +1,52 @@
 import streamlit as st
-import os
 from ultralytics import YOLO
+from PIL import Image
+import numpy as np
 
-# Configuramos la página
-st.set_page_config(page_title="Detector PPE", layout="wide")
+st.set_page_config(page_title="Detector EPP", layout="centered")
 
+st.title("🦺 Detector de EPP (PPE)")
+
+# Cargar modelo UNA sola vez
 @st.cache_resource
 def load_model():
-    # Verificamos si el archivo existe y tiene tamaño real
-    model_path = "best.pt"
-    if os.path.exists(model_path) and os.path.getsize(model_path) > 1000000:
-        return YOLO(model_path)
-    else:
-        st.error(f"Error: El archivo {model_path} no se encuentra o está corrupto. Tamaño: {os.path.getsize(model_path) if os.path.exists(model_path) else 'N/A'}")
-        return None
+    return YOLO("best.pt")
 
-st.title("Detector de EPP (PPE)")
 model = load_model()
+st.success("Modelo cargado correctamente.")
 
-if model:
-    st.success("Modelo cargado correctamente.")
-    # Aquí iría tu lógica para subir imágenes y detectar
-else:
-    st.warning("No se pudo cargar el modelo. Verifica que best.pt esté en la raíz.")
+# -------------------------------
+# OPCIÓN 1: SUBIR IMAGEN
+# -------------------------------
+st.subheader("📂 Subir imagen")
+uploaded_file = st.file_uploader("Elige una imagen", type=["jpg", "png", "jpeg"])
+
+if uploaded_file is not None:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Imagen subida", use_column_width=True)
+
+    img_array = np.array(image)
+
+    with st.spinner("Detectando..."):
+        results = model(img_array)
+        result_img = results[0].plot()
+
+    st.image(result_img, caption="Resultado", use_column_width=True)
+
+# -------------------------------
+# OPCIÓN 2: CÁMARA
+# -------------------------------
+st.subheader("📸 Usar cámara")
+camera_image = st.camera_input("Toma una foto")
+
+if camera_image is not None:
+    image = Image.open(camera_image)
+    st.image(image, caption="Foto capturada", use_column_width=True)
+
+    img_array = np.array(image)
+
+    with st.spinner("Detectando..."):
+        results = model(img_array)
+        result_img = results[0].plot()
+
+    st.image(result_img, caption="Resultado", use_column_width=True)
